@@ -3,16 +3,20 @@ from abc import abstractmethod
 from controllers.database_controller import Database
 from utils.properties_parser import parse_properties
 from hdfs import InsecureClient
+import pymonetdb
 import os
 
 
 class Process:
 
     def __init__(self):
-        self._host = parse_properties('hdfs')['hdfs.host']
-        self._user = parse_properties('hdfs')['hdfs.user']
-        self._hdfs_client = InsecureClient(f'http://{self._host}', user=self._user)  # Connect to HDFS
+        self._hdfs_client = InsecureClient(f"http://{parse_properties('hdfs')['hdfs.host']}", user=parse_properties('hdfs')['hdfs.user'])  # Connect to HDFS
         self._database = Database('p2')
+        #monetdb
+        self._database_monet = pymonetdb.connect(username=parse_properties('monetdb')['database.user'], 
+                                        password=parse_properties('monetdb')['database.password'], 
+                                        hostname=parse_properties('monetdb')['database.host'], 
+                                        database="mydb")
 
     @abstractmethod
     def run_process(self):

@@ -29,6 +29,11 @@ providing our .properties used in our private environment
     database.host=dodrio.fib.upc.es:27017
     database.password=
 
+    [monetdb]
+    database.user=monetdb
+    database.host=dodrio.fib.upc.es
+    database.password=
+
     [hdfs]
     hdfs.host=dodrio.fib.upc.es
     hdfs.user=bdm

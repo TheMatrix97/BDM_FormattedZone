@@ -9,6 +9,7 @@ Providing the following batch job functionalities:
 ## Requirements
 
 - MongoDB
+- MonetDB
 - HDFS Server
 - Python 3
 

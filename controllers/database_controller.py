@@ -3,7 +3,7 @@ import pymongo
 
 
 
-class Database:
+class DatabaseMongo:
     _uri = None
     _database = None
 

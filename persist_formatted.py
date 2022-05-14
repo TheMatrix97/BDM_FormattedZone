@@ -23,4 +23,4 @@ class FormatLoadProcess(Process):
 
     def save_to_log(self, file_name, datasource_name):
         entry = FormatLogEntry(file_name, time.time(), datasource_name)
-        self._database.insert_one("formatLog", entry.to_dict())
+        self._database.insert_one("formatLog",entry.to_dict())

@@ -48,7 +48,7 @@ class FormatLoadProcess(Process):
         }
         #all files to add
         print(df.count())
-        df.select("propertyCode").write.format("jdbc").mode('append').options(url="jdbc:monetdb://dodrio.fib.upc.es:50000/mydb", 
+        df.select("propertyCode").write.format("jdbc").mode('append').options(url=f"jdbc:monetdb://{parse_properties('monetdb')['database.host']}:50000/mydb", 
             dbtable="res", **properties).save()
 
     def _get_files_to_process(self, files_list, files_processed, dest_path_landing):

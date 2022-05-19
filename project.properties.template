@@ -9,5 +9,5 @@ database.host=dodrio.fib.upc.es
 database.password=
 
 [hdfs]
-hdfs.host=dodrio.fib.upc.es
+hdfs.host=dodrio.fib.upc.es:9870
 hdfs.user=bdm

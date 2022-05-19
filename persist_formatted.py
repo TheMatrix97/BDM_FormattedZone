@@ -37,10 +37,12 @@ class FormatLoadProcess(Process):
         files_list = list(filter(lambda item: item not in list(files_processed), files_list))
         # Build pySpark pipeline for processing
         spark = SparkSession.builder.master("local[*]").appName("datasource - " + datasource.name).getOrCreate()
-        #rdd = spark.sparkContext.parallelize([1,2,3])
-        #print(rdd.count())
-        rdd = spark.read.parquet(files_list[0])
-        print(rdd.count())
+        df = spark.read.parquet(*files_list)
+        #jdbc url
+        jdbcUrl = "jdbc:monetdb://dodrio.fib.upc.es:50000/mydb"
+        jdbcDriver = "com.microsoft.sqlserver.jdbc.SQLServerDriver"
+        #all files to add
+        print(df.count())
 
     def _get_files_to_process(self, files_list, files_processed, dest_path_landing):
         res = []

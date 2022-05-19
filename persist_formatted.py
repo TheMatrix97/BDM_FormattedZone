@@ -10,6 +10,7 @@ from models.datasource import Datasource
 from models.format_log_entry import FormatLogEntry
 
 from process import Process
+from utils.properties_parser import parse_properties
 
 
 class FormatLoadProcess(Process):
@@ -36,13 +37,19 @@ class FormatLoadProcess(Process):
         files_list = self._get_files_to_process(files_list, files_processed, datasource.dest_path_landing)
         files_list = list(filter(lambda item: item not in list(files_processed), files_list))
         # Build pySpark pipeline for processing
-        spark = SparkSession.builder.master("local[*]").appName("datasource - " + datasource.name).getOrCreate()
+        spark = SparkSession.builder.master("local[*]").appName("datasource - " + datasource.name).config('spark.driver.extraClassPath',
+                './drivers/monetdb-jdbc-3.2.jre8.jar').getOrCreate()
         df = spark.read.parquet(*files_list)
         #jdbc url
-        jdbcUrl = "jdbc:monetdb://dodrio.fib.upc.es:50000/mydb"
-        jdbcDriver = "com.microsoft.sqlserver.jdbc.SQLServerDriver"
+        properties = {
+            "user": parse_properties('monetdb')['database.user'],
+            "password": parse_properties('monetdb')['database.password'],
+            "driver": "org.monetdb.jdbc.MonetDriver"
+        }
         #all files to add
         print(df.count())
+        df.select("propertyCode").write.format("jdbc").mode('append').options(url="jdbc:monetdb://dodrio.fib.upc.es:50000/mydb", 
+            dbtable="res", **properties).save()
 
     def _get_files_to_process(self, files_list, files_processed, dest_path_landing):
         res = []

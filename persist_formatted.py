@@ -47,7 +47,8 @@ class FormatLoadProcess(Process):
         properties = {
             "user": parse_properties('monetdb')['database.user'],
             "password": parse_properties('monetdb')['database.password'],
-            "driver": "org.monetdb.jdbc.MonetDriver"
+            "driver": "org.monetdb.jdbc.MonetDriver",
+            "batchsize": 10000
         }
 
         #Custom steps per source!

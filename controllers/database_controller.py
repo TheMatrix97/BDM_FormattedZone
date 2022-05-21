@@ -24,6 +24,9 @@ class DatabaseMongo:
 
     def insert_one(self, collection, data):
         self._database[collection].insert_one(data)
+    
+    def insert_many(self, collection, data):
+        self._database[collection].insert_many(data)
 
     def find(self, collection, query):
         return self._database[collection].find(query)

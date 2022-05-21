@@ -1,6 +1,3 @@
-from cgitb import scanvars
-import glob
-import json
 import os
 from sys import path
 import time
@@ -21,7 +18,7 @@ class FormatLoadProcess(Process):
 
     def __init__(self):
         super().__init__()
-        self.sources_list = ['idealista', 'opendatabcn-income', 'opendatabcn-comercial']
+        self.sources_list = ['idealista', 'opendatabcn-income', 'opendatabcn-commercial']
     
     def run_process(self):
         # Enable database
@@ -53,14 +50,24 @@ class FormatLoadProcess(Process):
             "driver": "org.monetdb.jdbc.MonetDriver"
         }
 
-        column_types = ''
-        if datasource.name == 'idealista': #Custom steps idealista
-            custom_steps_res = self._custom_steps_idealista(spark, df)
-            df = custom_steps_res['df']
-            column_types = custom_steps_res['table_types_custom']
+        #Custom steps per source!
+        if datasource.name == 'idealista':
+            df = self._custom_steps_idealista(spark, df)
+        elif datasource.name == 'opendatabcn-income':
+            df = self._custom_steps_opendata_income(spark, df)
+        elif datasource.name == 'opendatabcn-commercial':
+            df = self._custom_steps_opendata_commercial(spark, df)
+        
+        # Change data type for Bool columns (from Bit(1) to Boolean)
+        boolean_columns = [x.name + " BOOLEAN" for x in df.schema.fields if isinstance(x.dataType, BooleanType)]
+        column_types = ', '.join(boolean_columns) if len(boolean_columns) > 0 else ''
         
         # Write to SQL
-        df.write.option("createTableColumnTypes", column_types).format("jdbc").mode('append').options(url=f"jdbc:monetdb://{parse_properties('monetdb')['database.host']}:50000/mydb", 
+        write_command = df.write
+        if column_types != '':
+            write_command = write_command.option("createTableColumnTypes", column_types)
+    
+        write_command.format("jdbc").mode('append').options(url=f"jdbc:monetdb://{parse_properties('monetdb')['database.host']}:50000/mydb", 
             dbtable=datasource.dest_table, **properties).save()
         
         #Collect processed files and store in log
@@ -68,20 +75,35 @@ class FormatLoadProcess(Process):
 
     def _custom_steps_idealista(self, spark, df):
         #all files to add
-        df_lookup = self._get_lookup_idealista(spark)
+        df_lookup = self._get_lookup(spark, 'lookup_tables_idealista')
 
-        #Join with lookup table
-        df = df.join(df_lookup, ['district', 'neighborhood'])
+        #Join with lookup table full join
+        df = df.join(df_lookup, ['district', 'neighborhood'], 'full') 
 
         #json normalizations detailedType & suggestedTexts
         
         df=df.withColumn('detailedType', to_json('detailedType'))
         df=df.withColumn('suggestedTexts', to_json('suggestedTexts'))
 
-        # Get boolean columns to cast from BIT to Boolean
-        boolean_columns = [x.name + " BOOLEAN" for x in df.schema.fields if isinstance(x.dataType, BooleanType)]
-        table_types_custom = ', '.join(boolean_columns)
-        return {'df': df, 'table_types_custom': table_types_custom}
+        return df
+    
+    def _custom_steps_opendata_income(self, spark, df):
+        #all files to add
+        df_lookup = self._get_lookup(spark, 'lookup_tables_opendatabcn')
+
+        #Join with lookup table full join
+        df = df.join(df_lookup, [df.Nom_Districte == df_lookup.district, df.Nom_Barri == df_lookup.neighborhood], 'full') 
+
+        return df
+
+    def _custom_steps_opendata_commercial(self, spark, df):
+        #all files to add
+        df_lookup = self._get_lookup(spark, 'lookup_tables_opendatabcn')
+
+        #Join with lookup table full join
+        df = df.join(df_lookup, [df.Nom_Districte == df_lookup.district, df.Nom_Barri == df_lookup.neighborhood], 'full') 
+
+        return df
 
 
     def _get_files_pending_process(self, datasource):
@@ -93,12 +115,12 @@ class FormatLoadProcess(Process):
         return files_list
 
     
-    def _get_lookup_idealista(self, spark):
-        idealista_lookup = Datasource(self._database.find('datasources', {"name": "lookup_tables_idealista"})[0])
-        file_name = self._hdfs_client.list(idealista_lookup.dest_path_landing)[0] # TODO Get latest (or first)
-        path_file = 'hdfs://dodrio.fib.upc.es:27000' + os.path.normpath(os.path.join(idealista_lookup.dest_path_landing, file_name))
-        lookup_idealista = spark.read.parquet(path_file)
-        return lookup_idealista
+    def _get_lookup(self, spark, name_datasource):
+        lookup = Datasource(self._database.find('datasources', {"name": name_datasource})[0])
+        file_name = self._hdfs_client.list(lookup.dest_path_landing)[0] # TODO Get latest (or first)
+        path_file = 'hdfs://dodrio.fib.upc.es:27000' + os.path.normpath(os.path.join(lookup.dest_path_landing, file_name))
+        lookup = spark.read.parquet(path_file)
+        return lookup
 
     def _get_files_to_process(self, files_list, files_processed, dest_path_landing):
         res = []
@@ -112,11 +134,6 @@ class FormatLoadProcess(Process):
         for item in self._database.find(self._log_collection_name, {}):
             loaded_files.add(item['file_name'])
         return loaded_files
-
-    
-    def _batch_load_format_inner(self, datasource):
-        print(datasource.to_json())
-
 
     def _save_to_log_batch(self, files, datasource_name):
         to_insert = []

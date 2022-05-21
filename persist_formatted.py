@@ -79,7 +79,7 @@ class FormatLoadProcess(Process):
         df_lookup = self._get_lookup(spark, 'lookup_tables_idealista')
 
         #Join with lookup table full join
-        df = df.join(df_lookup, ['district', 'neighborhood'], 'full') 
+        df = df.join(df_lookup, ['district', 'neighborhood'], 'leftouter') 
 
         #json normalizations detailedType & suggestedTexts
         
@@ -93,7 +93,7 @@ class FormatLoadProcess(Process):
         df_lookup = self._get_lookup(spark, 'lookup_tables_opendatabcn')
 
         #Join with lookup table full join
-        df = df.join(df_lookup, [df.Nom_Districte == df_lookup.district, df.Nom_Barri == df_lookup.neighborhood], 'full') 
+        df = df.join(df_lookup, [df.Nom_Districte == df_lookup.district, df.Nom_Barri == df_lookup.neighborhood], 'leftouter') 
 
         return df
 
@@ -102,7 +102,7 @@ class FormatLoadProcess(Process):
         df_lookup = self._get_lookup(spark, 'lookup_tables_opendatabcn')
 
         #Join with lookup table full join
-        df = df.join(df_lookup, [df.Nom_Districte == df_lookup.district, df.Nom_Barri == df_lookup.neighborhood], 'full') 
+        df = df.join(df_lookup, [df.Nom_Districte == df_lookup.district, df.Nom_Barri == df_lookup.neighborhood], 'leftouter') 
 
         return df
 

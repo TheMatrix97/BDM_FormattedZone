@@ -2,4 +2,5 @@ pyspark==3.2.1
 pymongo
 hdfs
 pymonetdb
+kafka-python
 #pyarrow

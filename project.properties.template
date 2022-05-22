@@ -11,3 +11,7 @@ database.password=
 [hdfs]
 hdfs.host=dodrio.fib.upc.es:9870
 hdfs.user=bdm
+
+[kafka]
+kafka.server=venomoth.fib.upc.edu:9092
+kafka.topic=bdm_p2

@@ -4,7 +4,7 @@ import time
 
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import to_json, input_file_name, current_timestamp
-from pyspark.sql.types import BooleanType
+from pyspark.sql.types import BooleanType, StringType
 
 from models.datasource import Datasource
 from models.format_log_entry import FormatLogEntry
@@ -58,10 +58,17 @@ class FormatLoadProcess(Process):
             df = self._custom_steps_opendata_income(spark, df)
         elif datasource.name == 'opendatabcn-commercial':
             df = self._custom_steps_opendata_commercial(spark, df)
-        
+        columns_modified = []
+
+        variables = SparkSession.getActiveSession().sparkContext.getConf().getAll()
+
         # Change data type for Bool columns (from Bit(1) to Boolean)
         boolean_columns = [x.name + " BOOLEAN" for x in df.schema.fields if isinstance(x.dataType, BooleanType)]
-        column_types = ', '.join(boolean_columns) if len(boolean_columns) > 0 else ''
+        # Change Data type for String columns (Clob to Varchar) Spark JDBC adapts length automatically
+        string_columns = [x.name + " VARCHAR(1024)" for x in df.schema.fields if isinstance(x.dataType, StringType)]
+        columns_modified.extend(string_columns)
+        columns_modified.extend(boolean_columns)
+        column_types = ', '.join(columns_modified) if len(columns_modified) > 0 else ''
         
         # Write to SQL
         write_command = df.write
